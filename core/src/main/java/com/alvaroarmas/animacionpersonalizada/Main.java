@@ -14,51 +14,52 @@ public class Main extends ApplicationAdapter {
     // Filas y columnas del sprite sheet
     private static final int FRAME_COLS = 3, FRAME_ROWS = 1;
 
-    // Objetos usados
-    Animation<TextureRegion> walkAnimation; // Se debe declarar el tipo de frame (TextureRegion)
-    Texture walkRightSheet;
-    Texture walkLeftSheet;
-    Texture walkUpSheet;
-    Texture walkDownSheet;
+
     Texture background;
+    Texture activeSheet;
+    Animation<TextureRegion> walkRight;
+    Animation<TextureRegion> walkLeft;
+    Animation<TextureRegion> walkUp;
+    Animation<TextureRegion> walkDown;
+    Animation<TextureRegion> currentAnimation;
     SpriteBatch spriteBatch;
 
-    // Una variable para el tracking del elapsed time de la animación
+    Boolean isMoving;
+
     float stateTime;
     float speed = 200;
-    float posX;
+    float posX = 150;
+    float posY = 50;
+
 
     @Override
     public void create() {
-
-        // Se carga la textura con los frames de la animación separados
-        walkRightSheet = new Texture(Gdx.files.internal("cloud_walk_right.png"));
-        walkLeftSheet = new Texture(Gdx.files.internal("cloud_walk_left.png"));
-        walkDownSheet = new Texture(Gdx.files.internal("cloud_walk_down.png"));
-        walkUpSheet = new Texture(Gdx.files.internal("cloud_walk_up3.png")); // Por qué peta con el up3?
-        background = new Texture(Gdx.files.internal("the_surface.png"));
-
-        // Se divide la imagen para crear un array 2D de TextureRegions, esto se puede hacer gracias
-        // a que la imagen está dividida a partes iguales
-        TextureRegion[][] tmp = TextureRegion.split(walkUpSheet,
-            walkRightSheet.getWidth() / FRAME_COLS,
-            walkRightSheet.getHeight() / FRAME_ROWS);
-
-        // Se colocan las regiones en un array 1D con el orden correcto de la animación
-        TextureRegion[] walkFrames = new TextureRegion[FRAME_COLS * FRAME_ROWS];
-        int index = 0;
-        for (int i = 0; i < FRAME_ROWS; i++) {
-            for (int j = 0; j < FRAME_COLS; j++) {
-                walkFrames[index++] = tmp[i][j];
-            }
-        }
-
-        // Se inicializa la Animation con el intervalo de frames y el array de los frames
-        walkAnimation = new Animation<TextureRegion>(0.125f, walkFrames);
-
-        // Se instancia un SpriteBatch para el dibujo y se resetea el elapsed animation
         spriteBatch = new SpriteBatch();
         stateTime = 0f;
+
+        background = new Texture(Gdx.files.internal("the_surface.png"));
+
+        walkRight = helperCrearAnimacion("cloud_walk_right.png", FRAME_COLS, FRAME_ROWS);
+        walkLeft = helperCrearAnimacion("cloud_walk_left.png", FRAME_COLS, FRAME_ROWS);
+        walkUp = helperCrearAnimacion("cloud_walk_up3.png", FRAME_COLS, FRAME_ROWS);
+        walkDown = helperCrearAnimacion("cloud_walking_down_3.png", FRAME_COLS, FRAME_ROWS);
+
+        // Empezamos mirando hacia abajo
+        currentAnimation = walkDown;
+    }
+
+    // Función auxiliar para no repetir código
+    private Animation<TextureRegion> helperCrearAnimacion(String path, int cols, int rows) {
+        Texture sheet = new Texture(Gdx.files.internal(path));
+        TextureRegion[][] tmp = TextureRegion.split(sheet, sheet.getWidth() / cols, sheet.getHeight() / rows);
+        TextureRegion[] frames = new TextureRegion[cols * rows];
+        int index = 0;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                frames[index++] = tmp[i][j];
+            }
+        }
+        return new Animation<>(0.125f, frames);
     }
 
     @Override
@@ -66,21 +67,52 @@ public class Main extends ApplicationAdapter {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); // Se limpia la pantalla
         stateTime += Gdx.graphics.getDeltaTime(); // Se acumula el tiempo que lleva la animación
 
-        posX += speed * Gdx.graphics.getDeltaTime(); // Haciendo que se mueva (se multiplica por el deltaTime para que los fps no influyan)
+        float delta = Gdx.graphics.getDeltaTime();
 
+        isMoving = false;
 
+        // Inputs
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.W)) {
+            posY += speed * delta;
+            currentAnimation = walkUp;
+            isMoving = true;
+        } else if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.S)) {
+            posY -= speed * delta;
+            currentAnimation = walkDown;
+            isMoving = true;
+        }
 
-        // Se obtiene el frame actual de la animación para el stateTime actual
-        TextureRegion currentFrame = walkAnimation.getKeyFrame(stateTime, true);
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.A)) {
+            posX -= speed * delta;
+            currentAnimation = walkLeft;
+            isMoving = true;
+        } else if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.D)) {
+            posX += speed * delta;
+            currentAnimation = walkRight;
+            isMoving = true;
+        }
+
+        // Solo acumulamos tiempo si el personaje se está moviendo
+        if (isMoving) {
+            stateTime += delta;
+        } else {
+            stateTime = 0.125f;
+        }
+
+        // Draw
+        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+
         spriteBatch.begin();
-
-        spriteBatch.draw(currentFrame, 50, 50, 128, 150); // Se dibuja el frame en (50, 50)
+        spriteBatch.draw(background, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        spriteBatch.draw(currentFrame, posX, posY, 32, 32);
         spriteBatch.end();
     }
 
     @Override
     public void dispose() { // Los SpriteBatches y Textures deben ser desechados siempre
         spriteBatch.dispose();
-        walkRightSheet.dispose();
+        background.dispose();
+
+
     }
 }
