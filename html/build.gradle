@@ -4,6 +4,12 @@ buildscript {
     mavenCentral()
     gradlePluginPortal()
   }
+  ext {
+    wsVersion = '1.9.10.3'
+  }
+  repositories {
+    maven { url "https://jitpack.io" }
+  }
   dependencies {
     classpath "org.docstr.gwt:org.docstr.gwt.gradle.plugin:$gwtPluginVersion"
 
@@ -52,6 +58,10 @@ gwt {
 }
 
 dependencies {
+  implementation "com.github.MrStahlfelge.gdx-websockets:core:$wsVersion:sources"
+  implementation "com.github.MrStahlfelge.gdx-websockets:html:$wsVersion"
+  implementation "com.github.MrStahlfelge.gdx-websockets:html:$wsVersion:sources"
+
   implementation "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
   implementation "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
   implementation "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
